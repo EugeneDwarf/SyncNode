@@ -28,8 +28,8 @@ export const en = {
   startupDesc: 'Automatically check for new notes when Obsidian launches',
   notifyName: 'Notifications',
   notifyDesc: 'Show Obsidian notices when checking and downloading notes',
-  // Upload to Server (Optional)
-  uploadSectionTitle: 'Upload to Server (Optional)',
+  // Upload to Server
+  uploadSectionTitle: 'Upload to Server',
   uploadSectionWarning: 'Security notice: Upload is strictly opt-in. When enabled, notes and attachments inside your Target Vault Folder can be uploaded to your WebDAV server. Files outside this folder will never be touched. SyncNode never deletes remote files.',
   enableUploadName: 'Enable Upload to Server',
   enableUploadDesc: 'Allow uploading local notes inside the Target Folder to the remote WebDAV server',

@@ -192,22 +192,8 @@ export class SyncNodeSettingTab extends PluginSettingTab {
         })
       );
 
-    // Upload to Server (Optional) Section
+    // Upload to Server Section
     containerEl.createEl('h3', { text: this.t('uploadSectionTitle') });
-
-    const warningCallout = containerEl.createDiv({ cls: 'callout callout-warning' });
-    warningCallout.style.marginBottom = '1rem';
-    warningCallout.style.padding = '0.75rem 1rem';
-    warningCallout.style.borderRadius = '6px';
-    warningCallout.style.borderLeft = '4px solid var(--text-warning)';
-    warningCallout.style.backgroundColor = 'var(--background-secondary)';
-    const calloutTitle = warningCallout.createDiv({ cls: 'callout-title' });
-    calloutTitle.style.fontWeight = 'bold';
-    calloutTitle.style.marginBottom = '0.25rem';
-    calloutTitle.style.color = 'var(--text-warning)';
-    calloutTitle.setText('⚠️ ' + this.t('uploadSectionTitle'));
-    const calloutContent = warningCallout.createDiv({ cls: 'callout-content' });
-    calloutContent.setText(this.t('uploadSectionWarning'));
 
     new Setting(containerEl)
       .setName(this.t('enableUploadName'))
