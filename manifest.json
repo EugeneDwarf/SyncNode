@@ -1,9 +1,9 @@
 {
   "id": "syncnode",
   "name": "SyncNode",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "minAppVersion": "0.15.0",
-  "description": "One-way selective WebDAV ingestion plugin for Obsidian. Downloads notes and media into a designated folder without uploading local files.",
+  "description": "Selective WebDAV ingestion and optional upload plugin for Obsidian. Downloads and optionally uploads notes and media strictly within a designated folder.",
   "author": "EugeneDwarf",
   "authorUrl": "https://github.com/EugeneDwarf",
   "isDesktopOnly": false

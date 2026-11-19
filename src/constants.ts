@@ -35,5 +35,9 @@ export const DEFAULT_SETTINGS: SyncNodeSettings = {
   notifyOnSync: true,
   enableTemplate: false,
   noteTemplate: DEFAULT_NOTE_TEMPLATE_EN,
-  isConfigured: false
+  isConfigured: false,
+  enableUpload: false,
+  uploadMode: 'manual_only',
+  conflictStrategy: 'keep_newer',
+  notifyOnUpload: true
 };

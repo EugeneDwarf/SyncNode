@@ -1,7 +1,12 @@
-import { Notice, Plugin, requestUrl } from 'obsidian';
+import { Notice, Plugin, TFile, requestUrl } from 'obsidian';
 import { fetchRemoteTree, getAuthHeader, testWebDavConnection } from './api/webdav-client';
 import { DEFAULT_SETTINGS } from './constants';
 import { applyIngestionTemplate } from './engine/template-engine';
+import {
+  isPathInsideTarget,
+  syncLocalFolderToRemote,
+  uploadSingleFile
+} from './engine/upload-engine';
 import { I18nKey, getTranslation } from './i18n';
 import { ConfigTokenPayload, SyncNodeSettings, TestConnectionResult } from './types';
 import { OnboardingModal } from './ui/onboarding-modal';
@@ -44,6 +49,35 @@ export default class SyncNodePlugin extends Plugin {
         new OnboardingModal(this.app, this).open();
       }
     });
+
+    // Command palette: Upload active note to server
+    this.addCommand({
+      id: 'syncnode-upload-active-note',
+      name: this.t('cmdUploadActiveNote'),
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) return;
+        await this.uploadFile(activeFile);
+      }
+    });
+
+    // File context menu integration (strictly scoped to target folder)
+    this.registerEvent(
+      this.app.workspace.on('file-menu', (menu, file) => {
+        if (!(file instanceof TFile)) return;
+        if (!this.settings.enableUpload) return;
+        if (!isPathInsideTarget(file.path, this.settings.targetFolder)) return;
+
+        menu.addItem((item) => {
+          item
+            .setTitle(this.t('menuUploadNote'))
+            .setIcon('upload-cloud')
+            .onClick(async () => {
+              await this.uploadFile(file);
+            });
+        });
+      })
+    );
 
     // Settings tab
     this.addSettingTab(new SyncNodeSettingTab(this.app, this));
@@ -115,7 +149,11 @@ export default class SyncNodePlugin extends Plugin {
       syncOnStartup: this.settings.syncOnStartup ?? true,
       notifyOnSync: this.settings.notifyOnSync ?? true,
       enableTemplate: this.settings.enableTemplate ?? false,
-      noteTemplate: this.settings.noteTemplate ?? ''
+      noteTemplate: this.settings.noteTemplate ?? '',
+      enableUpload: this.settings.enableUpload ?? false,
+      uploadMode: this.settings.uploadMode || 'manual_only',
+      conflictStrategy: this.settings.conflictStrategy || 'keep_newer',
+      notifyOnUpload: this.settings.notifyOnUpload ?? true
     };
     return 'syncnode://' + toBase64(JSON.stringify(payload));
   }
@@ -161,6 +199,12 @@ export default class SyncNodePlugin extends Plugin {
     if (typeof data.notifyOnSync === 'boolean') this.settings.notifyOnSync = data.notifyOnSync;
     if (typeof data.enableTemplate === 'boolean') this.settings.enableTemplate = data.enableTemplate;
     if (typeof data.noteTemplate === 'string') this.settings.noteTemplate = data.noteTemplate;
+    if (typeof data.enableUpload === 'boolean') this.settings.enableUpload = data.enableUpload;
+    if (data.uploadMode === 'manual_only' || data.uploadMode === 'auto_sync')
+      this.settings.uploadMode = data.uploadMode;
+    if (data.conflictStrategy === 'keep_newer' || data.conflictStrategy === 'rename_conflict' || data.conflictStrategy === 'skip')
+      this.settings.conflictStrategy = data.conflictStrategy;
+    if (typeof data.notifyOnUpload === 'boolean') this.settings.notifyOnUpload = data.notifyOnUpload;
     this.settings.isConfigured = true;
 
     await this.saveSettings();
@@ -331,6 +375,28 @@ export default class SyncNodePlugin extends Plugin {
       } else if (!isBackground && this.settings.notifyOnSync) {
         new Notice(this.t('noticeUpToDate'));
       }
+
+      // 4. Phase 2: Optional Auto-Upload from local target folder to server
+      if (this.settings.enableUpload && this.settings.uploadMode === 'auto_sync') {
+        try {
+          const uploadResults = await syncLocalFolderToRemote(
+            this.app.vault,
+            this.settings,
+            this.getAuthHeader()
+          );
+          const uploadedCount = uploadResults.filter((r) => r.status === 'uploaded').length;
+          const skippedCount = uploadResults.filter((r) => r.status === 'skipped').length;
+          const errorCount = uploadResults.filter((r) => r.status === 'error').length;
+
+          if (uploadedCount > 0 && this.settings.notifyOnUpload) {
+            new Notice(
+              this.t('noticeBatchUploadSummary', uploadedCount, skippedCount, errorCount)
+            );
+          }
+        } catch (uploadErr) {
+          console.error('[SyncNode] Auto-upload error:', uploadErr);
+        }
+      }
     } catch (err: any) {
       console.error('[SyncNode] Sync failed:', err);
       if (!isBackground) {
@@ -338,6 +404,48 @@ export default class SyncNodePlugin extends Plugin {
       }
     } finally {
       this.isSyncing = false;
+    }
+  }
+
+  async uploadFile(file: TFile): Promise<void> {
+    if (!this.settings.enableUpload) {
+      new Notice(this.t('noticeUploadDisabled'));
+      return;
+    }
+    if (!isPathInsideTarget(file.path, this.settings.targetFolder)) {
+      new Notice(this.t('noticeUploadNotInTarget', this.settings.targetFolder));
+      return;
+    }
+    if (!this.settings.webdavUrl || !this.settings.username || !this.settings.password) {
+      new Notice(this.t('noticeConfigMissing'));
+      return;
+    }
+
+    if (this.settings.notifyOnUpload) {
+      new Notice(this.t('noticeUploading', file.name));
+    }
+
+    try {
+      const res = await uploadSingleFile(
+        this.app.vault,
+        file,
+        this.settings,
+        this.getAuthHeader()
+      );
+
+      if (res.status === 'uploaded') {
+        if (this.settings.notifyOnUpload) {
+          new Notice(this.t('noticeUploaded', file.name));
+        }
+      } else if (res.status === 'skipped') {
+        if (this.settings.notifyOnUpload) {
+          new Notice(this.t('noticeUploadSkipped', file.name));
+        }
+      } else {
+        new Notice(this.t('noticeUploadError', file.name, res.error || 'Unknown error'));
+      }
+    } catch (err: any) {
+      new Notice(this.t('noticeUploadError', file.name, err.message || String(err)));
     }
   }
 }

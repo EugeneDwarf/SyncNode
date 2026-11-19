@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-11-19
+
+### Added
+- **Optional WebDAV Note Upload:** Users can now optionally enable uploading notes and media to their WebDAV server.
+  - **Strictly Opt-In:** Disabled by default (`enableUpload: false`) guaranteeing zero unsolicited uploads.
+  - **Target Folder Security Scope:** Upload is strictly confined to the designated Target Vault Folder and Attachments Folder (`isPathInsideTarget`). Any attempt to upload notes outside this scope is blocked with a security notice.
+  - **Conflict Strategies:** Configurable handling for existing remote files:
+    - `keep_newer`: Overwrites remote files only if the local copy has a newer modification timestamp (> 2000ms delta).
+    - `rename_conflict`: Preserves both versions by creating a timestamped local backup `(local conflict YYYY-MM-DD...)` before uploading.
+    - `skip`: Skips upload if the remote file exists.
+  - **Upload Modes:**
+    - `Manual Only`: Upload on-demand via the file context menu (right-click -> "SyncNode: Upload to server") or Command Palette (`SyncNode: Upload active note to server`).
+    - `Auto Sync`: Uploads modified local notes in 5 parallel streams during scheduled sync.
+  - **WebDAV Primitives (`PUT`, `MKCOL`, `HEAD`):** Implemented recursive remote collection creation (`MKCOL`) and auto-handling of HTTP 409 parent conflicts without third-party dependencies.
+  - **Zero Remote Deletions:** Remote file deletion (`DELETE`) is never performed, ensuring server safety.
+  - **UI Settings & Warning Callout:** Added a dedicated "Upload to Server" section in settings with an explicit warning callout and conditional controls.
+  - **1-Click Token Support:** Configuration token (`syncnode://...`) safely serializes and restores upload preferences.
+  - **Bilingual Localization:** Complete English and Russian translations for all new upload settings, commands, and notices.
+
+---
+
 ## [1.2.0] - 2026-10-30
 
 ### Added

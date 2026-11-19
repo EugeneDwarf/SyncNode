@@ -1,7 +1,7 @@
 import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { DEFAULT_NOTE_TEMPLATE_EN, DEFAULT_NOTE_TEMPLATE_RU } from '../constants';
 import { I18nKey } from '../i18n';
-import { SupportedLanguage } from '../types';
+import { ConflictStrategy, SupportedLanguage, UploadMode } from '../types';
 import { ISyncNodePlugin, OnboardingModal } from './onboarding-modal';
 
 export class SyncNodeSettingTab extends PluginSettingTab {
@@ -191,6 +191,75 @@ export class SyncNodeSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+
+    // Upload to Server (Optional) Section
+    containerEl.createEl('h3', { text: this.t('uploadSectionTitle') });
+
+    const warningCallout = containerEl.createDiv({ cls: 'callout callout-warning' });
+    warningCallout.style.marginBottom = '1rem';
+    warningCallout.style.padding = '0.75rem 1rem';
+    warningCallout.style.borderRadius = '6px';
+    warningCallout.style.borderLeft = '4px solid var(--text-warning)';
+    warningCallout.style.backgroundColor = 'var(--background-secondary)';
+    const calloutTitle = warningCallout.createDiv({ cls: 'callout-title' });
+    calloutTitle.style.fontWeight = 'bold';
+    calloutTitle.style.marginBottom = '0.25rem';
+    calloutTitle.style.color = 'var(--text-warning)';
+    calloutTitle.setText('⚠️ ' + this.t('uploadSectionTitle'));
+    const calloutContent = warningCallout.createDiv({ cls: 'callout-content' });
+    calloutContent.setText(this.t('uploadSectionWarning'));
+
+    new Setting(containerEl)
+      .setName(this.t('enableUploadName'))
+      .setDesc(this.t('enableUploadDesc'))
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.enableUpload).onChange(async (value) => {
+          this.plugin.settings.enableUpload = value;
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+
+    if (this.plugin.settings.enableUpload) {
+      new Setting(containerEl)
+        .setName(this.t('uploadModeName'))
+        .setDesc(this.t('uploadModeDesc'))
+        .addDropdown((drop) =>
+          drop
+            .addOption('manual_only', this.t('uploadModeManual'))
+            .addOption('auto_sync', this.t('uploadModeAuto'))
+            .setValue(this.plugin.settings.uploadMode || 'manual_only')
+            .onChange(async (value) => {
+              this.plugin.settings.uploadMode = value as UploadMode;
+              await this.plugin.saveSettings();
+            })
+        );
+
+      new Setting(containerEl)
+        .setName(this.t('conflictStrategyName'))
+        .setDesc(this.t('conflictStrategyDesc'))
+        .addDropdown((drop) =>
+          drop
+            .addOption('keep_newer', this.t('conflictKeepNewer'))
+            .addOption('rename_conflict', this.t('conflictRename'))
+            .addOption('skip', this.t('conflictSkip'))
+            .setValue(this.plugin.settings.conflictStrategy || 'keep_newer')
+            .onChange(async (value) => {
+              this.plugin.settings.conflictStrategy = value as ConflictStrategy;
+              await this.plugin.saveSettings();
+            })
+        );
+
+      new Setting(containerEl)
+        .setName(this.t('notifyOnUploadName'))
+        .setDesc(this.t('notifyOnUploadDesc'))
+        .addToggle((toggle) =>
+          toggle.setValue(this.plugin.settings.notifyOnUpload).onChange(async (value) => {
+            this.plugin.settings.notifyOnUpload = value;
+            await this.plugin.saveSettings();
+          })
+        );
+    }
 
     // Ingestion Template Section
     containerEl.createEl('h3', { text: this.t('templateHeader') });

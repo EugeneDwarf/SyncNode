@@ -1,4 +1,6 @@
 export type SupportedLanguage = 'en' | 'ru';
+export type UploadMode = 'manual_only' | 'auto_sync';
+export type ConflictStrategy = 'keep_newer' | 'rename_conflict' | 'skip';
 
 export interface SyncNodeSettings {
   language: SupportedLanguage;
@@ -14,6 +16,10 @@ export interface SyncNodeSettings {
   enableTemplate: boolean;
   noteTemplate: string;
   isConfigured: boolean;
+  enableUpload: boolean;
+  uploadMode: UploadMode;
+  conflictStrategy: ConflictStrategy;
+  notifyOnUpload: boolean;
 }
 
 export interface WebDavItem {
@@ -48,6 +54,17 @@ export interface TemplateOptions {
   now?: Date;
 }
 
+export type UploadStatus = 'uploaded' | 'skipped' | 'error';
+
+export interface UploadResult {
+  ok: boolean;
+  status: UploadStatus;
+  relPath: string;
+  bytesUploaded?: number;
+  conflict?: boolean;
+  error?: string;
+}
+
 export interface ConfigTokenPayload {
   v: number;
   language: SupportedLanguage;
@@ -62,4 +79,8 @@ export interface ConfigTokenPayload {
   notifyOnSync: boolean;
   enableTemplate: boolean;
   noteTemplate: string;
+  enableUpload?: boolean;
+  uploadMode?: UploadMode;
+  conflictStrategy?: ConflictStrategy;
+  notifyOnUpload?: boolean;
 }
