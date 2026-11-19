@@ -1,0 +1,9 @@
+# Obsidian plugin files
+data.json
+.DS_Store
+Thumbs.db
+node_modules/
+dist/
+.obsidian/
+*.log
+.github/
